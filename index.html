@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة الامتحانات المدرسية</title>
-    <!-- استدعاء ملف CSS الخارجي -->
     <link rel="stylesheet" href="style.css">
-    <!-- مكتبة jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -19,48 +17,59 @@
         <button id="login-btn">دخول</button>
         <div id="error-msg">جاري تحميل بيانات المنصة...</div>
         
-        <!-- لوحة تحكم الأستاذ -->
+        <!-- لوحة تحكم الأستاذ المنظمة -->
         <div id="teacher-dashboard" style="display:none; margin-top: 20px;">
             <h3 style="color: #2980b9; text-align: center;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
             
+            <!-- 1. قسم إضافة طالب وترتيبه التسلسلي تلقائياً -->
             <div class="admin-section">
-                <label><b>اختر الصف الدراسي:</b></label>
-                <select id="selected-grade">
+                <h4 style="color: #2c3e50; margin-top: 0;">1. إضافة طالب جديد وتوليد رقمه تلقائياً</h4>
+                
+                <label>اختر الصف الدراسي:</label>
+                <select id="student-grade">
                     <option value="">-- اختر الصف --</option>
                     <option value="grade_7">الصف السابع</option>
                     <option value="grade_5">الصف الخامس</option>
                 </select>
+
+                <label>اختر الشعبة:</label>
+                <select id="student-section">
+                    <option value="">-- اختر الصف أولاً --</option>
+                </select>
+
+                <label>الرقم الامتحاني التلقائي:</label>
+                <input type="text" id="auto-student-id" readonly placeholder="سيظهر الرقم تلقائياً هنا">
+
+                <input type="text" id="new-student-name" placeholder="اسم الطالب الثلاثي">
+                <button id="add-s-btn" style="background-color: #2980b9;">حفظ وتسجيل الطالب</button>
+                <div id="s-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
             </div>
 
-            <div id="grade-options" style="display: none;">
-                <!-- إضافة أسئلة يدوياً -->
-                <div class="admin-section">
-                    <h4 style="color: #2c3e50; margin-top: 0;">إضافة سؤال جديد للصف المحدد</h4>
-                    <input type="text" id="new-q-text" placeholder="نص السؤال">
-                    <input type="text" id="new-opt-0" placeholder="الخيار الأول">
-                    <input type="text" id="new-opt-1" placeholder="الخيار الثاني">
-                    <input type="text" id="new-opt-2" placeholder="الخيار الثالث">
-                    <input type="text" id="new-opt-3" placeholder="الخيار الرابع">
-                    <label style="font-size: 13px;">رقم الإجابة الصحيحة (0 للأول، 1 للثاني...):</label>
-                    <input type="number" id="new-correct" min="0" max="3" value="0">
-                    <button id="add-q-btn" style="background-color: #27ae60;">حفظ وإضافة السؤال للسحابة</button>
-                    <div id="q-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
-                </div>
-
-                <!-- إضافة الطلاب وشعبهم -->
-                <div class="admin-section">
-                    <h4 style="color: #2c3e50; margin-top: 0;">إضافة طالب جديد لشعبة معينة</h4>
-                    <input type="text" id="new-student-id" placeholder="الرقم الامتحاني (مثال: 7001)">
-                    <input type="text" id="new-student-name" placeholder="اسم الطالب الثلاثي">
-                    <input type="text" id="new-student-section" placeholder="الشعبة (مثال: أ، ب، الأولى)">
-                    <button id="add-s-btn" style="background-color: #2980b9;">تسجيل الطالب في القاعدة</button>
-                    <div id="s-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
-                </div>
-            </div>
-
-            <!-- قسم النتائج والـ PDF -->
+            <!-- 2. قسم إضافة أسئلة مفصولة لكل صف -->
             <div class="admin-section">
-                <h4 style="color: #333; margin-top: 0;">النتائج والتقارير</h4>
+                <h4 style="color: #2c3e50; margin-top: 0;">2. إضافة أسئلة مخصصة لصف معين</h4>
+                
+                <label>اختر الصف الموجه له السؤال:</label>
+                <select id="q-grade">
+                    <option value="">-- اختر الصف --</option>
+                    <option value="grade_7">الصف السابع</option>
+                    <option value="grade_5">الصف الخامس</option>
+                </select>
+
+                <input type="text" id="new-q-text" placeholder="نص السؤال">
+                <input type="text" id="new-opt-0" placeholder="الخيار الأول">
+                <input type="text" id="new-opt-1" placeholder="الخيار الثاني">
+                <input type="text" id="new-opt-2" placeholder="الخيار الثالث">
+                <input type="text" id="new-opt-3" placeholder="الخيار الرابع">
+                <label style="font-size: 13px;">رقم الإجابة الصحيحة (0 للأول، 1 للثاني...):</label>
+                <input type="number" id="new-correct" min="0" max="3" value="0">
+                <button id="add-q-btn" style="background-color: #27ae60;">حفظ وإضافة السؤال للسحابة</button>
+                <div id="q-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
+            </div>
+
+            <!-- 3. قسم النتائج والـ PDF -->
+            <div class="admin-section">
+                <h4 style="color: #333; margin-top: 0;">3. النتائج والتقارير</h4>
                 <button id="refresh-results-btn" style="background-color: #3498db; margin-bottom: 8px;">تحديث وعرض النتائج</button>
                 <button id="download-pdf-btn" style="background-color: #c0392b;">حفظ النتائج كملف PDF 📄</button>
                 
@@ -99,7 +108,6 @@
         </div>
     </div>
 
-    <!-- استدعاء ملف الجافاسكريبت الخارجي كـ Module -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
