@@ -4,8 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة الامتحانات المدرسية</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- استدعاء مكتبة jsPDF لتوليد التقارير -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Tahoma', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 750px; text-align: center; }
+        h2 { color: #2c3e50; margin-bottom: 15px; font-size: clamp(1.2rem, 4vw, 1.6rem); }
+        p { font-size: clamp(0.9rem, 3vw, 1.1rem); color: #555; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; text-align: right; }
+        button { background-color: #4CAF50; color: white; padding: 12px; width: 100%; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
+        button:hover { background-color: #45a049; }
+        #error-msg { color: red; margin-top: 10px; font-size: 14px; }
+        .question-box { text-align: right; margin-bottom: 15px; background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        .question-box p { font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
+        .options label { display: block; margin: 8px 0; cursor: pointer; font-size: 14px; padding: 5px; border-radius: 4px; }
+        .options label:hover { background: #f0f0f0; }
+        #timer-box { background: #e74c3c; color: white; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; }
+        
+        /* تنسيقات لوحة التحكم الاحترافية */
+        .admin-dashboard { text-align: right; }
+        .admin-card { background: #fff; border: 1px solid #e0e0e0; border-top: 4px solid #3498db; padding: 18px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .admin-card h4 { margin-top: 0; color: #2980b9; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
 </head>
 <body>
 
@@ -15,16 +40,15 @@
         <p>الرجاء إدخال رقمك الامتحاني (أو كود الأستاذ 0000)</p>
         <input type="number" id="examIdInput" placeholder="أدخل الرقم الامتحاني أو كود المعلم">
         <button id="login-btn">دخول</button>
-        <div id="error-msg">جاري تحميل بيانات المنصة...</div>
+        <div id="error-msg"></div>
         
-        <!-- لوحة تحكم الأستاذ المنظمة -->
-        <div id="teacher-dashboard" style="display:none; margin-top: 20px;">
-            <h3 style="color: #2980b9; text-align: center;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
+        <!-- لوحة تحكم الأستاذ المطورة -->
+        <div id="teacher-dashboard" style="display:none;" class="admin-dashboard">
+            <h3 style="color: #2c3e50; text-align: center; background: #ecf0f1; padding: 10px; border-radius: 6px;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
             
-            <!-- 1. قسم إضافة طالب وترتيبه التسلسلي تلقائياً -->
-            <div class="admin-section">
-                <h4 style="color: #2c3e50; margin-top: 0;">1. إضافة طالب جديد وتوليد رقمه تلقائياً</h4>
-                
+            <!-- 1. قسم إضافة طالب -->
+            <div class="admin-card">
+                <h4>1. تسجيل طالب جديد وتوليد رقمه تلقائياً</h4>
                 <label>اختر الصف الدراسي:</label>
                 <select id="student-grade">
                     <option value="">-- اختر الصف --</option>
@@ -45,10 +69,9 @@
                 <div id="s-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
             </div>
 
-            <!-- 2. قسم إضافة أسئلة مفصولة لكل صف -->
-            <div class="admin-section">
-                <h4 style="color: #2c3e50; margin-top: 0;">2. إضافة أسئلة مخصصة لصف معين</h4>
-                
+            <!-- 2. قسم إضافة أسئلة -->
+            <div class="admin-card" style="border-top-color: #27ae60;">
+                <h4>2. إضافة سؤال جديد مخصص لصف معين</h4>
                 <label>اختر الصف الموجه له السؤال:</label>
                 <select id="q-grade">
                     <option value="">-- اختر الصف --</option>
@@ -67,13 +90,52 @@
                 <div id="q-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
             </div>
 
-            <!-- 3. قسم النتائج والـ PDF -->
-            <div class="admin-section">
-                <h4 style="color: #333; margin-top: 0;">3. النتائج والتقارير</h4>
+            <!-- 3. قائمة الطلاب المسجلين بالكامل -->
+            <div class="admin-card" style="border-top-color: #8e44ad;">
+                <h4>3. قائمة جميع الطلاب المسجلين في المنصة</h4>
+                <button id="load-all-students-btn" style="background-color: #8e44ad; margin-bottom: 8px;">تحديث وعرض جميع الطلاب</button>
+                <div style="max-height: 160px; overflow-y: auto;">
+                    <table id="students-table">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>اسم الطالب</th>
+                                <th>الصف والشعبة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-body">
+                            <tr><td colspan="3" style="text-align: center;">اضغط على زر التحديث لعرض الطلاب</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. قائمة الأسئلة المسجلة مقسمة -->
+            <div class="admin-card" style="border-top-color: #e67e22;">
+                <h4>4. بنك الأسئلة المخزنة في السحابة</h4>
+                <button id="load-all-questions-btn" style="background-color: #e67e22; margin-bottom: 8px;">تحديث وعرض الأسئلة</button>
+                <div style="max-height: 160px; overflow-y: auto;">
+                    <table id="questions-table">
+                        <thead>
+                            <tr>
+                                <th>الصف</th>
+                                <th>نص السؤال</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questions-body">
+                            <tr><td colspan="2" style="text-align: center;">اضغط على زر التحديث لعرض الأسئلة</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. قسم النتائج والتقارير PDF -->
+            <div class="admin-card" style="border-top-color: #c0392b;">
+                <h4>5. نتائج الطلاب والتقارير الرسمية</h4>
                 <button id="refresh-results-btn" style="background-color: #3498db; margin-bottom: 8px;">تحديث وعرض النتائج</button>
-                <button id="download-pdf-btn" style="background-color: #c0392b;">حفظ النتائج كملف PDF 📄</button>
+                <button id="download-pdf-btn" style="background-color: #c0392b;">تصدير تقرير النتائج PDF 📄</button>
                 
-                <div style="max-height: 180px; overflow-y: auto; margin-top: 10px;">
+                <div style="max-height: 160px; overflow-y: auto; margin-top: 10px;">
                     <table>
                         <thead>
                             <tr>
@@ -108,6 +170,412 @@
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <!-- كود الجافاسكريبت المتكامل -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoKXd-RLGwtBQ2Exbk3cxXrzWGXpz40P0",
+            authDomain: "school-exams-e9474.firebaseapp.com",
+            projectId: "school-exams-e9474",
+            storageBucket: "school-exams-e9474.firebasestorage.app",
+            messagingSenderId: "86794889937",
+            appId: "1:86794889937:web:267fb9d7339968ba2673f0",
+            measurementId: "G-0FTLXQV2G9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let questionBank = [];
+        let currentStudent = null;
+        let activeQuestions = [];
+        let timerInterval = null;
+        let cachedResults = [];
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const errorMsg = document.getElementById("error-msg");
+            if (errorMsg) errorMsg.innerText = "";
+
+            // تسجيل الدخول
+            document.getElementById("login-btn").addEventListener("click", async function() {
+                const inputId = document.getElementById("examIdInput").value.trim();
+
+                if (!inputId) {
+                    errorMsg.innerText = "الرجاء إدخال الرقم الامتحاني أو كود المعلم.";
+                    return;
+                }
+
+                if (inputId === "0000") {
+                    currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال" };
+                    document.getElementById("teacher-dashboard").style.display = "block";
+                    errorMsg.innerText = "أهلاً بك يا أستاذ في لوحة التحكم الإدارية.";
+                    loadExamResults();
+                    loadAllStudents();
+                    loadAllQuestions();
+                    return;
+                }
+
+                errorMsg.innerText = "جاري التحقق من الرقم...";
+                try {
+                    const studentDoc = await getDoc(doc(db, "students", inputId));
+                    if (studentDoc.exists()) {
+                        currentStudent = { id: inputId, ...studentDoc.data() };
+                    } else {
+                        errorMsg.innerText = "الرقم الامتحاني غير مسجل في قاعدة البيانات.";
+                        return;
+                    }
+                } catch (error) {
+                    console.error(error);
+                    errorMsg.innerText = "حدث خطأ أثناء التحقق، تأكد من الاتصال بالإنترنت.";
+                    return;
+                }
+
+                try {
+                    const querySnapshot = await getDocs(collection(db, "questions"));
+                    questionBank = [];
+                    querySnapshot.forEach((d) => {
+                        const data = d.data();
+                        if (data.grade === currentStudent.grade) {
+                            questionBank.push(data);
+                        }
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
+
+                if (questionBank.length === 0) {
+                    errorMsg.innerText = "لا توجد أسئلة مسجلة لهذا الصف حتى الآن!";
+                    return;
+                }
+
+                activeQuestions = getRandomQuestions(questionBank, Math.min(5, questionBank.length));
+                renderQuestions();
+
+                document.getElementById("login-container").style.display = "none";
+                document.getElementById("exam-container").style.display = "block";
+                document.getElementById("student-welcome").innerText = "أهلاً بك، " + currentStudent.name;
+                document.getElementById("exam-title-grade").innerText = "اختبار مادة الرياضيات - الشعبة: " + (currentStudent.section || "عامة");
+                
+                startTimer(5 * 60);
+            });
+
+            // اختيار الصف لتعبئة الشعب
+            document.getElementById("student-grade").addEventListener("change", function() {
+                const grade = this.value;
+                const sectionSelect = document.getElementById("student-section");
+                sectionSelect.innerHTML = '<option value="">-- اختر الشعبة --</option>';
+                
+                if (!grade) return;
+
+                ["الشعبة أ", "الشعبة ب", "الشعبة ج"].forEach(sec => {
+                    let opt = document.createElement("option");
+                    opt.value = sec;
+                    opt.textContent = sec;
+                    sectionSelect.appendChild(opt);
+                });
+            });
+
+            // توليد الرقم الامتحاني التلقائي
+            document.getElementById("student-section").addEventListener("change", async function() {
+                const grade = document.getElementById("student-grade").value;
+                const section = this.value;
+                const idInput = document.getElementById("auto-student-id");
+
+                if (!grade || !section) return;
+
+                try {
+                    const querySnapshot = await getDocs(collection(db, "students"));
+                    let count = 0;
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data.grade === grade && data.section === section) {
+                            count++;
+                        }
+                    });
+
+                    let serial = String(count).padStart(2, '0');
+                    let prefix = grade === "grade_7" ? "7" : "5";
+                    let sectionCode = section.includes("أ") ? "1" : (section.includes("ب") ? "2" : "3");
+                    
+                    idInput.value = prefix + sectionCode + serial;
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+
+            // إضافة طالب
+            document.getElementById("add-s-btn").addEventListener("click", async function() {
+                const grade = document.getElementById("student-grade").value;
+                const section = document.getElementById("student-section").value;
+                const sId = document.getElementById("auto-student-id").value.trim();
+                const sName = document.getElementById("new-student-name").value.trim();
+                const status = document.getElementById("s-status");
+
+                if (!grade || !section || !sId || !sName) {
+                    alert("الرجاء إكمال كافة بيانات الطالب.");
+                    return;
+                }
+
+                try {
+                    await setDoc(doc(db, "students", sId), {
+                        name: sName,
+                        grade: grade,
+                        section: section
+                    });
+                    status.innerText = `تم تسجيل الطالب بنجاح برقم امتحاني: ${sId}`;
+                    document.getElementById("new-student-name").value = "";
+                    loadAllStudents();
+                } catch (err) {
+                    console.error(err);
+                    status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
+                }
+            });
+
+            // إضافة سؤال
+            document.getElementById("add-q-btn").addEventListener("click", async function() {
+                const grade = document.getElementById("q-grade").value;
+                const qText = document.getElementById("new-q-text").value.trim();
+                const opt0 = document.getElementById("new-opt-0").value.trim();
+                const opt1 = document.getElementById("new-opt-1").value.trim();
+                const opt2 = document.getElementById("new-opt-2").value.trim();
+                const opt3 = document.getElementById("new-opt-3").value.trim();
+                const correct = parseInt(document.getElementById("new-correct").value);
+                const status = document.getElementById("q-status");
+
+                if (!grade || !qText || !opt0 || !opt1) {
+                    alert("الرجاء اختيار الصف وتعبئة نص السؤال والخيارين الأول والثاني على الأقل.");
+                    return;
+                }
+
+                const questionObj = {
+                    q: qText,
+                    options: [opt0, opt1, opt2, opt3].filter(o => o !== ""),
+                    correct: correct,
+                    grade: grade
+                };
+
+                try {
+                    const docId = grade + "_q_" + Date.now();
+                    await setDoc(doc(db, "questions", docId), questionObj);
+                    status.innerText = "تمت إضافة السؤال بنجاح للصف المحدد!";
+                    document.getElementById("new-q-text").value = "";
+                    document.getElementById("new-opt-0").value = "";
+                    document.getElementById("new-opt-1").value = "";
+                    document.getElementById("new-opt-2").value = "";
+                    document.getElementById("new-opt-3").value = "";
+                    loadAllQuestions();
+                } catch (err) {
+                    console.error(err);
+                    status.innerText = "حدث خطأ أثناء حفظ السؤال.";
+                }
+            });
+
+            document.getElementById("load-all-students-btn").addEventListener("click", loadAllStudents);
+            document.getElementById("load-all-questions-btn").addEventListener("click", loadAllQuestions);
+            document.getElementById("refresh-results-btn").addEventListener("click", loadExamResults);
+
+            // تصدير PDF مع دعم اللغة العربية وتنسيق مرتب
+            document.getElementById("download-pdf-btn").addEventListener("click", function() {
+                if (cachedResults.length === 0) {
+                    alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً لجلب البيانات.");
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const docPDF = new jsPDF();
+
+                // ضبط العنوان والترويسة
+                docPDF.setFont("Tahoma", "normal");
+                docPDF.setFontSize(16);
+                docPDF.text("تقرير نتائج الامتحانات المدرسية", 105, 20, { align: "center" });
+                
+                docPDF.setFontSize(12);
+                docPDF.text("الأستاذ: عبدالمنعم حسن هلال", 105, 28, { align: "center" });
+
+                let y = 45;
+                docPDF.setFontSize(11);
+                // عناوين الأعمدة
+                docPDF.text("الرقم الامتحاني", 30, y);
+                docPDF.text("اسم الطالب", 85, y);
+                docPDF.text("العلامة النهائية", 160, y);
+                
+                docPDF.setLineWidth(0.5);
+                docPDF.line(20, y + 3, 190, y + 3);
+
+                y += 10;
+                cachedResults.forEach((res) => {
+                    if (y > 280) { // صفحة جديدة إذا انتهت المساحة
+                        docPDF.addPage();
+                        y = 20;
+                    }
+                    docPDF.text(String(res.examId), 30, y);
+                    docPDF.text(String(res.studentName), 85, y);
+                    docPDF.text(String(res.score) + " / 100", 160, y);
+                    y += 9;
+                });
+
+                docPDF.save("School_Exam_Results.pdf");
+            });
+
+            document.getElementById("submit-btn").addEventListener("click", submitExam);
+        });
+
+        // دالة جلب كل الطلاب المسجلين
+        async function loadAllStudents() {
+            const tbody = document.getElementById("students-body");
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب قائمة الطلاب...</td></tr>";
+            try {
+                const querySnapshot = await getDocs(collection(db, "students"));
+                let rows = "";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
+                    rows += `
+                        <tr>
+                            <td>${doc.id}</td>
+                            <td>${data.name}</td>
+                            <td>${gradeName} - ${data.section}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = rows || "<tr><td colspan='3' style='text-align: center;'>لا يوجد طلاب مسجلين بعد.</td></tr>";
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; color: red;'>خطأ في جلب الطلاب.</td></tr>";
+            }
+        }
+
+        // دالة جلب كل الأسئلة المخزنة
+        async function loadAllQuestions() {
+            const tbody = document.getElementById("questions-body");
+            tbody.innerHTML = "<tr><td colspan='2' style='text-align: center;'>جاري جلب الأسئلة...</td></tr>";
+            try {
+                const querySnapshot = await getDocs(collection(db, "questions"));
+                let rows = "";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
+                    rows += `
+                        <tr>
+                            <td><b>${gradeName}</b></td>
+                            <td>${data.q}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = rows || "<tr><td colspan='2' style='text-align: center;'>لا توجد أسئلة مسجلة بعد.</td></tr>";
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = "<tr><td colspan='2' style='text-align: center; color: red;'>خطأ في جلب الأسئلة.</td></tr>";
+            }
+        }
+
+        async function loadExamResults() {
+            const tbody = document.getElementById("results-body");
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب النتائج...</td></tr>";
+            try {
+                const querySnapshot = await getDocs(collection(db, "exam_results"));
+                cachedResults = [];
+                querySnapshot.forEach((doc) => {
+                    cachedResults.push(doc.data());
+                });
+
+                if (cachedResults.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>لا توجد نتائج مسجلة حتى الآن.</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                cachedResults.forEach((res) => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${res.examId}</td>
+                            <td>${res.studentName}</td>
+                            <td><b>${res.score}</b> / 100</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; color: red;'>خطأ في جلب النتائج.</td></tr>";
+            }
+        }
+
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                document.getElementById("time-left").textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    alert("انتهى وقت الامتحان!");
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function getRandomQuestions(arr, count) {
+            let shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById("questions-container");
+            container.innerHTML = "";
+            activeQuestions.forEach((item, index) => {
+                let optionsHtml = "";
+                let shuffledOptions = item.options.map((opt, idx) => ({ text: opt, originalIndex: idx }))
+                                                 .sort(() => 0.5 - Math.random());
+                
+                shuffledOptions.forEach((optObj) => {
+                    optionsHtml += `<label><input type="radio" name="q_${index}" value="${optObj.originalIndex}"> ${optObj.text}</label>`;
+                });
+
+                container.innerHTML += `
+                    <div class="question-box">
+                        <p>${index + 1}. ${item.q}</p>
+                        <div class="options">${optionsHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function submitExam() {
+            if (timerInterval) clearInterval(timerInterval);
+            let score = 0;
+            const pointsPerQuestion = Math.floor(100 / activeQuestions.length);
+
+            activeQuestions.forEach((item, index) => {
+                const selected = document.querySelector(`input[name="q_${index}"]:checked`);
+                if (selected && parseInt(selected.value) === item.correct) {
+                    score += pointsPerQuestion;
+                }
+            });
+
+            document.getElementById("questions-container").style.display = "none";
+            document.getElementById("submit-btn").style.display = "none";
+            document.getElementById("timer-box").style.display = "none";
+            document.getElementById("result-box").style.display = "block";
+            document.getElementById("score-text").innerText = `علامتك النهائية هي: ${score} من 100`;
+
+            try {
+                const docId = currentStudent.id === "0000" ? "teacher_" + Date.now() : currentStudent.id;
+                await setDoc(doc(db, "exam_results", docId), {
+                    examId: currentStudent.id,
+                    studentName: currentStudent.name,
+                    grade: currentStudent.grade || "غير محدد",
+                    section: currentStudent.section || "عامة",
+                    score: score,
+                    submitTime: new Date().toISOString()
+                });
+            } catch (error) {
+                console.error("خطأ في حفظ النتيجة:", error);
+            }
+        }
+    </script>
 </body>
 </html>
