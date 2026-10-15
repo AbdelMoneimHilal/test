@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة الامتحانات المدرسية</title>
-    <!-- استدعاء مكتبة jsPDF لتوليد التقارير -->
+    <!-- استدعاء مكتبة jsPDF للتقارير -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -22,7 +22,6 @@
         .options label:hover { background: #f0f0f0; }
         #timer-box { background: #e74c3c; color: white; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; }
         
-        /* تنسيقات لوحة التحكم الاحترافية */
         .admin-dashboard { text-align: right; }
         .admin-card { background: #fff; border: 1px solid #e0e0e0; border-top: 4px solid #3498db; padding: 18px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .admin-card h4 { margin-top: 0; color: #2980b9; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
@@ -61,7 +60,7 @@
                     <option value="">-- اختر الصف أولاً --</option>
                 </select>
 
-                <label>الرقم الامتحاني التلقائي:</label>
+                <label>الرقم الامتحاني التلقائي (يتحدث فوراً):</label>
                 <input type="text" id="auto-student-id" readonly placeholder="سيظهر الرقم تلقائياً هنا">
 
                 <input type="text" id="new-student-name" placeholder="اسم الطالب الثلاثي">
@@ -129,11 +128,12 @@
                 </div>
             </div>
 
-            <!-- 5. قسم النتائج والتقارير PDF -->
+            <!-- 5. قسم النتائج والتقارير PDF / Excel -->
             <div class="admin-card" style="border-top-color: #c0392b;">
                 <h4>5. نتائج الطلاب والتقارير الرسمية</h4>
                 <button id="refresh-results-btn" style="background-color: #3498db; margin-bottom: 8px;">تحديث وعرض النتائج</button>
-                <button id="download-pdf-btn" style="background-color: #c0392b;">تصدير تقرير النتائج PDF 📄</button>
+                <button id="download-pdf-btn" style="background-color: #c0392b; margin-bottom: 5px;">تصدير تقرير النتائج PDF 📄</button>
+                <button id="download-excel-btn" style="background-color: #27ae60;">تصدير النتائج كملف Excel 📊</button>
                 
                 <div style="max-height: 160px; overflow-y: auto; margin-top: 10px;">
                     <table>
@@ -275,15 +275,23 @@
                     opt.textContent = sec;
                     sectionSelect.appendChild(opt);
                 });
+                updateAutoId();
             });
 
-            // توليد الرقم الامتحاني التلقائي
-            document.getElementById("student-section").addEventListener("change", async function() {
+            // تحديث الرقم الامتحاني تلقائياً وفوراً عند اختيار الشعبة
+            document.getElementById("student-section").addEventListener("change", function() {
+                updateAutoId();
+            });
+
+            async function updateAutoId() {
                 const grade = document.getElementById("student-grade").value;
-                const section = this.value;
+                const section = document.getElementById("student-section").value;
                 const idInput = document.getElementById("auto-student-id");
 
-                if (!grade || !section) return;
+                if (!grade || !section) {
+                    idInput.value = "";
+                    return;
+                }
 
                 try {
                     const querySnapshot = await getDocs(collection(db, "students"));
@@ -303,7 +311,7 @@
                 } catch (err) {
                     console.error(err);
                 }
-            });
+            }
 
             // إضافة طالب
             document.getElementById("add-s-btn").addEventListener("click", async function() {
@@ -327,6 +335,7 @@
                     status.innerText = `تم تسجيل الطالب بنجاح برقم امتحاني: ${sId}`;
                     document.getElementById("new-student-name").value = "";
                     loadAllStudents();
+                    updateAutoId(); // تحديث الرقم تلقائياً للطالب القادم
                 } catch (err) {
                     console.error(err);
                     status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
@@ -376,7 +385,7 @@
             document.getElementById("load-all-questions-btn").addEventListener("click", loadAllQuestions);
             document.getElementById("refresh-results-btn").addEventListener("click", loadExamResults);
 
-            // تصدير PDF مع دعم اللغة العربية وتنسيق مرتب
+            // تصدير PDF مرتب ويدعم العربية
             document.getElementById("download-pdf-btn").addEventListener("click", function() {
                 if (cachedResults.length === 0) {
                     alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً لجلب البيانات.");
@@ -385,7 +394,6 @@
                 const { jsPDF } = window.jspdf;
                 const docPDF = new jsPDF();
 
-                // ضبط العنوان والترويسة
                 docPDF.setFont("Tahoma", "normal");
                 docPDF.setFontSize(16);
                 docPDF.text("تقرير نتائج الامتحانات المدرسية", 105, 20, { align: "center" });
@@ -395,7 +403,6 @@
 
                 let y = 45;
                 docPDF.setFontSize(11);
-                // عناوين الأعمدة
                 docPDF.text("الرقم الامتحاني", 30, y);
                 docPDF.text("اسم الطالب", 85, y);
                 docPDF.text("العلامة النهائية", 160, y);
@@ -405,7 +412,7 @@
 
                 y += 10;
                 cachedResults.forEach((res) => {
-                    if (y > 280) { // صفحة جديدة إذا انتهت المساحة
+                    if (y > 280) {
                         docPDF.addPage();
                         y = 20;
                     }
@@ -418,10 +425,32 @@
                 docPDF.save("School_Exam_Results.pdf");
             });
 
+            // تصدير النتائج كملف Excel (CSV)
+            document.getElementById("download-excel-btn").addEventListener("click", function() {
+                if (cachedResults.length === 0) {
+                    alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً.");
+                    return;
+                }
+
+                let csvContent = "\uFEFFالرقم الامتحاني,اسم الطالب,الصف,الشعبة,العلامة النهائية\n";
+                cachedResults.forEach(res => {
+                    let gradeStr = res.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
+                    csvContent += `${res.examId},"${res.studentName}",${gradeStr},"${res.section}",${res.score}\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Exam_Results.csv";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
             document.getElementById("submit-btn").addEventListener("click", submitExam);
         });
 
-        // دالة جلب كل الطلاب المسجلين
         async function loadAllStudents() {
             const tbody = document.getElementById("students-body");
             tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب قائمة الطلاب...</td></tr>";
@@ -446,7 +475,6 @@
             }
         }
 
-        // دالة جلب كل الأسئلة المخزنة
         async function loadAllQuestions() {
             const tbody = document.getElementById("questions-body");
             tbody.innerHTML = "<tr><td colspan='2' style='text-align: center;'>جاري جلب الأسئلة...</td></tr>";
