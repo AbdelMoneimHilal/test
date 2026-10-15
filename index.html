@@ -68,7 +68,7 @@
         let currentStudent = null;
         let activeQuestions = [];
 
-        // تحميل بنك الأسئلة من سحابة Firestore عند فتح الصفحة
+        // تحميل بنك الأسئلة من سحابة Firestore
         async function loadQuestionBank() {
             try {
                 const querySnapshot = await getDocs(collection(db, "questions"));
@@ -76,10 +76,10 @@
                 querySnapshot.forEach((doc) => {
                     questionBank.push(doc.data());
                 });
-                document.getElementById("error-msg.innerText = "";
+                document.getElementById("error-msg").innerText = "";
             } catch (error) {
                 console.error("خطأ في تحميل الأسئلة:", error);
-                document.getElementById("error-msg").innerText = "تأكد من إضافة الأسئلة في قاعدة بيانات فايربيس.";
+                document.getElementById("error-msg").innerText = "تأكد من الاتصال بالإنترنت وإضافة الأسئلة في فايربيس.";
             }
         }
         loadQuestionBank();
@@ -92,7 +92,6 @@
                 currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال (معلم المادة)" };
             } else {
                 try {
-                    // البحث عن الطالب في مجموعة الطلاب السحابية بالرقم الامتحاني
                     const studentDoc = await getDoc(doc(db, "students", inputId));
                     if (studentDoc.exists()) {
                         currentStudent = { id: inputId, ...studentDoc.data() };
@@ -107,7 +106,7 @@
             }
 
             if (questionBank.length === 0) {
-                errorMsg.innerText = "بنك الأسئلة فارغ حالياً بالسحابة!";
+                errorMsg.innerText = "بنك الأسئلة فارغ حالياً بالسحابة أو جاري التحميل، انتظر قليلاً!";
                 return;
             }
 
