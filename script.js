@@ -20,18 +20,84 @@ let activeQuestions = [];
 let timerInterval = null;
 let cachedResults = [];
 
-// إخفاء رسالة التحميل فور اكتمال التشغيل
 document.getElementById("error-msg").innerText = "";
 
-// اختيار الصف
-document.getElementById("selected-grade").addEventListener("change", function() {
+// نظام توليد الرقم الامتحاني التلقائي وتعبئة الشعب
+document.getElementById("student-grade").addEventListener("change", async function() {
     const grade = this.value;
-    document.getElementById("grade-options").style.display = grade ? "block" : "none";
+    const sectionSelect = document.getElementById("student-section");
+    sectionSelect.innerHTML = '<option value="">-- اختر الشعبة --</option>';
+    
+    if (!grade) return;
+
+    // إضافة خيارات الشعب الافتراضية
+    ["الشعبة أ", "الشعبة ب", "الشعبة ج"].forEach(sec => {
+        let opt = document.createElement("option");
+        opt.value = sec;
+        opt.textContent = sec;
+        sectionSelect.appendChild(opt);
+    });
 });
 
-// إضافة سؤال
+// عند اختيار الشعبة، نقوم بحساب وتسلسل رقم الطالب تلقائياً (من 00 إلى 99)
+document.getElementById("student-section").addEventListener("change", async function() {
+    const grade = document.getElementById("student-grade").value;
+    const section = this.value;
+    const idInput = document.getElementById("auto-student-id");
+
+    if (!grade || !section) return;
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "students"));
+        let count = 0;
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.grade === grade && data.section === section) {
+                count++;
+            }
+        });
+
+        // تنسيق الرقم التسلسلي من 00 إلى 99
+        let serial = String(count).padStart(2, '0');
+        let prefix = grade === "grade_7" ? "7" : "5";
+        let sectionCode = section.includes("أ") ? "1" : (section.includes("ب") ? "2" : "3");
+        
+        idInput.value = prefix + sectionCode + serial;
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+// إضافة الطالب بقاعدة البيانات
+document.getElementById("add-s-btn").addEventListener("click", async function() {
+    const grade = document.getElementById("student-grade").value;
+    const section = document.getElementById("student-section").value;
+    const sId = document.getElementById("auto-student-id").value.trim();
+    const sName = document.getElementById("new-student-name").value.trim();
+    const status = document.getElementById("s-status");
+
+    if (!grade || !section || !sId || !sName) {
+        alert("الرجاء إكمال كافة بيانات الطالب.");
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, "students", sId), {
+            name: sName,
+            grade: grade,
+            section: section
+        });
+        status.innerText = `تم تسجيل الطالب بنجاح برقم امتحاني: ${sId}`;
+        document.getElementById("new-student-name").value = "";
+    } catch (err) {
+        console.error(err);
+        status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
+    }
+});
+
+// إضافة سؤال خاص بالصف المحدد حصرياً
 document.getElementById("add-q-btn").addEventListener("click", async function() {
-    const grade = document.getElementById("selected-grade").value;
+    const grade = document.getElementById("q-grade").value;
     const qText = document.getElementById("new-q-text").value.trim();
     const opt0 = document.getElementById("new-opt-0").value.trim();
     const opt1 = document.getElementById("new-opt-1").value.trim();
@@ -40,8 +106,8 @@ document.getElementById("add-q-btn").addEventListener("click", async function() 
     const correct = parseInt(document.getElementById("new-correct").value);
     const status = document.getElementById("q-status");
 
-    if (!qText || !opt0 || !opt1) {
-        alert("الرجاء تعبئة نص السؤال والخيارين الأول والثاني على الأقل.");
+    if (!grade || !qText || !opt0 || !opt1) {
+        alert("الرجاء اختيار الصف وتعبئة نص السؤال والخيارين الأول والثاني على الأقل.");
         return;
     }
 
@@ -55,7 +121,7 @@ document.getElementById("add-q-btn").addEventListener("click", async function() 
     try {
         const docId = grade + "_q_" + Date.now();
         await setDoc(doc(db, "questions", docId), questionObj);
-        status.innerText = "تمت إضافة السؤال بنجاح!";
+        status.innerText = "تمت إضافة السؤال بنجاح للصف المحدد!";
         document.getElementById("new-q-text").value = "";
         document.getElementById("new-opt-0").value = "";
         document.getElementById("new-opt-1").value = "";
@@ -63,36 +129,7 @@ document.getElementById("add-q-btn").addEventListener("click", async function() 
         document.getElementById("new-opt-3").value = "";
     } catch (err) {
         console.error(err);
-        status.innerText = "حدث خطأ أثناء الحفظ.";
-    }
-});
-
-// إضافة طالب
-document.getElementById("add-s-btn").addEventListener("click", async function() {
-    const grade = document.getElementById("selected-grade").value;
-    const sId = document.getElementById("new-student-id").value.trim();
-    const sName = document.getElementById("new-student-name").value.trim();
-    const sSection = document.getElementById("new-student-section").value.trim();
-    const status = document.getElementById("s-status");
-
-    if (!sId || !sName) {
-        alert("الرجاء إدخال الرقم الامتحاني واسم الطالب.");
-        return;
-    }
-
-    try {
-        await setDoc(doc(db, "students", sId), {
-            name: sName,
-            grade: grade,
-            section: sSection || "عامة"
-        });
-        status.innerText = "تم تسجيل الطالب بنجاح!";
-        document.getElementById("new-student-id").value = "";
-        document.getElementById("new-student-name").value = "";
-        document.getElementById("new-student-section").value = "";
-    } catch (err) {
-        console.error(err);
-        status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
+        status.innerText = "حدث خطأ أثناء حفظ السؤال.";
     }
 });
 
@@ -191,7 +228,8 @@ document.getElementById("login-btn").addEventListener("click", async function() 
         questionBank = [];
         querySnapshot.forEach((d) => {
             const data = d.data();
-            if (!data.grade || data.grade === currentStudent.grade) {
+            // تصفية الأسئلة حصرياً لصف الطالب فقط
+            if (data.grade === currentStudent.grade) {
                 questionBank.push(data);
             }
         });
