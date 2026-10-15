@@ -29,6 +29,7 @@
         th, td { border: 1px solid #ddd; padding: 8px; }
         th { background-color: #34495e; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
+        .filter-group { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -41,7 +42,7 @@
         <button id="login-btn">دخول</button>
         <div id="error-msg"></div>
         
-        <!-- لوحة تحكم الأستاذ المطورة -->
+        <!-- لوحة تحكم الأستاذ المفروزة بكفاءة -->
         <div id="teacher-dashboard" style="display:none;" class="admin-dashboard">
             <h3 style="color: #2c3e50; text-align: center; background: #ecf0f1; padding: 10px; border-radius: 6px;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
             
@@ -60,7 +61,7 @@
                     <option value="">-- اختر الصف أولاً --</option>
                 </select>
 
-                <label>الرقم الامتحاني التلقائي (يتحدث فوراً):</label>
+                <label>الرقم الامتحاني التلقائي:</label>
                 <input type="text" id="auto-student-id" readonly placeholder="سيظهر الرقم تلقائياً هنا">
 
                 <input type="text" id="new-student-name" placeholder="اسم الطالب الثلاثي">
@@ -89,10 +90,17 @@
                 <div id="q-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
             </div>
 
-            <!-- 3. قائمة الطلاب المسجلين بالكامل -->
+            <!-- 3. قائمة الطلاب المفروزة حسب الصف -->
             <div class="admin-card" style="border-top-color: #8e44ad;">
-                <h4>3. قائمة جميع الطلاب المسجلين في المنصة</h4>
-                <button id="load-all-students-btn" style="background-color: #8e44ad; margin-bottom: 8px;">تحديث وعرض جميع الطلاب</button>
+                <h4>3. قائمة الطلاب المسجلين (تصفية حسب الصف)</h4>
+                <div class="filter-group">
+                    <select id="filter-students-grade">
+                        <option value="all">عرض جميع الصفوف</option>
+                        <option value="grade_7">الصف السابع فقط</option>
+                        <option value="grade_5">الصف الخامس فقط</option>
+                    </select>
+                    <button id="load-all-students-btn" style="background-color: #8e44ad; margin-top: 0;">عرض/تحديث</button>
+                </div>
                 <div style="max-height: 160px; overflow-y: auto;">
                     <table id="students-table">
                         <thead>
@@ -103,16 +111,23 @@
                             </tr>
                         </thead>
                         <tbody id="students-body">
-                            <tr><td colspan="3" style="text-align: center;">اضغط على زر التحديث لعرض الطلاب</td></tr>
+                            <tr><td colspan="3" style="text-align: center;">اختر الصف واضغط على عرض/تحديث</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 4. قائمة الأسئلة المسجلة مقسمة -->
+            <!-- 4. قائمة الأسئلة المفروزة حسب الصف -->
             <div class="admin-card" style="border-top-color: #e67e22;">
-                <h4>4. بنك الأسئلة المخزنة في السحابة</h4>
-                <button id="load-all-questions-btn" style="background-color: #e67e22; margin-bottom: 8px;">تحديث وعرض الأسئلة</button>
+                <h4>4. بنك الأسئلة المخزنة (تصفية حسب الصف)</h4>
+                <div class="filter-group">
+                    <select id="filter-questions-grade">
+                        <option value="all">عرض جميع الصفوف</option>
+                        <option value="grade_7">أسئلة الصف السابع فقط</option>
+                        <option value="grade_5">أسئلة الصف الخامس فقط</option>
+                    </select>
+                    <button id="load-all-questions-btn" style="background-color: #e67e22; margin-top: 0;">عرض/تحديث</button>
+                </div>
                 <div style="max-height: 160px; overflow-y: auto;">
                     <table id="questions-table">
                         <thead>
@@ -122,18 +137,25 @@
                             </tr>
                         </thead>
                         <tbody id="questions-body">
-                            <tr><td colspan="2" style="text-align: center;">اضغط على زر التحديث لعرض الأسئلة</td></tr>
+                            <tr><td colspan="2" style="text-align: center;">اختر الصف واضغط على عرض/تحديث</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 5. قسم النتائج والتقارير PDF / Excel -->
+            <!-- 5. قسم النتائج والتقارير المفروزة -->
             <div class="admin-card" style="border-top-color: #c0392b;">
-                <h4>5. نتائج الطلاب والتقارير الرسمية</h4>
-                <button id="refresh-results-btn" style="background-color: #3498db; margin-bottom: 8px;">تحديث وعرض النتائج</button>
-                <button id="download-pdf-btn" style="background-color: #c0392b; margin-bottom: 5px;">تصدير تقرير النتائج PDF 📄</button>
-                <button id="download-excel-btn" style="background-color: #27ae60;">تصدير النتائج كملف Excel 📊</button>
+                <h4>5. نتائج الطلاب والتقارير المفروزة</h4>
+                <div class="filter-group">
+                    <select id="filter-results-grade">
+                        <option value="all">جميع الصفوف</option>
+                        <option value="grade_7">نتائج الصف السابع</option>
+                        <option value="grade_5">نتائج الصف الخامس</option>
+                    </select>
+                    <button id="refresh-results-btn" style="background-color: #3498db; margin-top: 0;">تحديث النتائج</button>
+                </div>
+                <button id="download-pdf-btn" style="background-color: #c0392b; margin-bottom: 5px;">تصدير التقرير الموحد PDF 📄</button>
+                <button id="download-excel-btn" style="background-color: #27ae60;">تصدير التقرير كملف Excel 📊</button>
                 
                 <div style="max-height: 160px; overflow-y: auto; margin-top: 10px;">
                     <table>
@@ -141,11 +163,12 @@
                             <tr>
                                 <th>الرقم</th>
                                 <th>اسم الطالب</th>
+                                <th>الصف - الشعبة</th>
                                 <th>العلامة</th>
                             </tr>
                         </thead>
                         <tbody id="results-body">
-                            <tr><td colspan="3" style="text-align: center;">انقر على تحديث وعرض النتائج</td></tr>
+                            <tr><td colspan="4" style="text-align: center;">انقر على تحديث النتائج</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -170,7 +193,7 @@
         </div>
     </div>
 
-    <!-- كود الجافاسكريبت المتكامل -->
+    <!-- كود الجافاسكريبت المتكامل بفرز كامل -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc, getDocs, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -278,10 +301,7 @@
                 updateAutoId();
             });
 
-            // تحديث الرقم الامتحاني تلقائياً وفوراً عند اختيار الشعبة
-            document.getElementById("student-section").addEventListener("change", function() {
-                updateAutoId();
-            });
+            document.getElementById("student-section").addEventListener("change", updateAutoId);
 
             async function updateAutoId() {
                 const grade = document.getElementById("student-grade").value;
@@ -335,7 +355,7 @@
                     status.innerText = `تم تسجيل الطالب بنجاح برقم امتحاني: ${sId}`;
                     document.getElementById("new-student-name").value = "";
                     loadAllStudents();
-                    updateAutoId(); // تحديث الرقم تلقائياً للطالب القادم
+                    updateAutoId();
                 } catch (err) {
                     console.error(err);
                     status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
@@ -385,55 +405,75 @@
             document.getElementById("load-all-questions-btn").addEventListener("click", loadAllQuestions);
             document.getElementById("refresh-results-btn").addEventListener("click", loadExamResults);
 
-            // تصدير PDF مرتب ويدعم العربية
+            // تصدير PDF مفروز
             document.getElementById("download-pdf-btn").addEventListener("click", function() {
                 if (cachedResults.length === 0) {
-                    alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً لجلب البيانات.");
+                    alert("الرجاء النقر على 'تحديث النتائج' أولاً لجلب البيانات.");
                     return;
                 }
+                const filterGrade = document.getElementById("filter-results-grade").value;
+                const filtered = filterGrade === "all" ? cachedResults : cachedResults.filter(r => r.grade === filterGrade);
+
+                if (filtered.length === 0) {
+                    alert("لا توجد نتائج مسجلة لهذا الصف بالتحديد.");
+                    return;
+                }
+
                 const { jsPDF } = window.jspdf;
                 const docPDF = new jsPDF();
 
                 docPDF.setFont("Tahoma", "normal");
                 docPDF.setFontSize(16);
-                docPDF.text("تقرير نتائج الامتحانات المدرسية", 105, 20, { align: "center" });
+                let titleStr = filterGrade === "all" ? "تقرير نتائج جميع الامتحانات" : (filterGrade === "grade_7" ? "تقرير نتائج الصف السابع" : "تقرير نتائج الصف الخامس");
+                docPDF.text(titleStr, 105, 20, { align: "center" });
                 
                 docPDF.setFontSize(12);
                 docPDF.text("الأستاذ: عبدالمنعم حسن هلال", 105, 28, { align: "center" });
 
                 let y = 45;
                 docPDF.setFontSize(11);
-                docPDF.text("الرقم الامتحاني", 30, y);
-                docPDF.text("اسم الطالب", 85, y);
-                docPDF.text("العلامة النهائية", 160, y);
+                docPDF.text("الرقم الامتحاني", 25, y);
+                docPDF.text("اسم الطالب", 75, y);
+                docPDF.text("الصف - الشعبة", 130, y);
+                docPDF.text("العلامة", 175, y);
                 
                 docPDF.setLineWidth(0.5);
                 docPDF.line(20, y + 3, 190, y + 3);
 
                 y += 10;
-                cachedResults.forEach((res) => {
+                filtered.forEach((res) => {
                     if (y > 280) {
                         docPDF.addPage();
                         y = 20;
                     }
-                    docPDF.text(String(res.examId), 30, y);
-                    docPDF.text(String(res.studentName), 85, y);
-                    docPDF.text(String(res.score) + " / 100", 160, y);
+                    let gradeName = res.grade === "grade_7" ? "السابع" : "الخامس";
+                    docPDF.text(String(res.examId), 25, y);
+                    docPDF.text(String(res.studentName), 75, y);
+                    docPDF.text(`${gradeName} (${res.section})`, 130, y);
+                    docPDF.text(String(res.score) + " / 100", 175, y);
                     y += 9;
                 });
 
-                docPDF.save("School_Exam_Results.pdf");
+                docPDF.save(`${titleStr}.pdf`);
             });
 
-            // تصدير النتائج كملف Excel (CSV)
+            // تصدير Excel مفروز
             document.getElementById("download-excel-btn").addEventListener("click", function() {
                 if (cachedResults.length === 0) {
-                    alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً.");
+                    alert("الرجاء النقر على 'تحديث النتائج' أولاً.");
+                    return;
+                }
+
+                const filterGrade = document.getElementById("filter-results-grade").value;
+                const filtered = filterGrade === "all" ? cachedResults : cachedResults.filter(r => r.grade === filterGrade);
+
+                if (filtered.length === 0) {
+                    alert("لا توجد نتائج لهذا الصف.");
                     return;
                 }
 
                 let csvContent = "\uFEFFالرقم الامتحاني,اسم الطالب,الصف,الشعبة,العلامة النهائية\n";
-                cachedResults.forEach(res => {
+                filtered.forEach(res => {
                     let gradeStr = res.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
                     csvContent += `${res.examId},"${res.studentName}",${gradeStr},"${res.section}",${res.score}\n`;
                 });
@@ -442,7 +482,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = "Exam_Results.csv";
+                a.download = "Exam_Results_Filtered.csv";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -451,56 +491,66 @@
             document.getElementById("submit-btn").addEventListener("click", submitExam);
         });
 
+        // دالة جلب الطلاب مع التصفية بالصف
         async function loadAllStudents() {
             const tbody = document.getElementById("students-body");
+            const filterGrade = document.getElementById("filter-students-grade").value;
             tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب قائمة الطلاب...</td></tr>";
             try {
                 const querySnapshot = await getDocs(collection(db, "students"));
                 let rows = "";
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
-                    rows += `
-                        <tr>
-                            <td>${doc.id}</td>
-                            <td>${data.name}</td>
-                            <td>${gradeName} - ${data.section}</td>
-                        </tr>
-                    `;
+                    if (filterGrade === "all" || data.grade === filterGrade) {
+                        let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
+                        rows += `
+                            <tr>
+                                <td>${doc.id}</td>
+                                <td>${data.name}</td>
+                                <td>${gradeName} - ${data.section}</td>
+                            </tr>
+                        `;
+                    }
                 });
-                tbody.innerHTML = rows || "<tr><td colspan='3' style='text-align: center;'>لا يوجد طلاب مسجلين بعد.</td></tr>";
+                tbody.innerHTML = rows || "<tr><td colspan='3' style='text-align: center;'>لا يوجد طلاب مسجلين لهذا الخيار.</td></tr>";
             } catch (err) {
                 console.error(err);
                 tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; color: red;'>خطأ في جلب الطلاب.</td></tr>";
             }
         }
 
+        // دالة جلب الأسئلة مع التصفية بالصف
         async function loadAllQuestions() {
             const tbody = document.getElementById("questions-body");
+            const filterGrade = document.getElementById("filter-questions-grade").value;
             tbody.innerHTML = "<tr><td colspan='2' style='text-align: center;'>جاري جلب الأسئلة...</td></tr>";
             try {
                 const querySnapshot = await getDocs(collection(db, "questions"));
                 let rows = "";
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
-                    rows += `
-                        <tr>
-                            <td><b>${gradeName}</b></td>
-                            <td>${data.q}</td>
-                        </tr>
-                    `;
+                    if (filterGrade === "all" || data.grade === filterGrade) {
+                        let gradeName = data.grade === "grade_7" ? "الصف السابع" : "الصف الخامس";
+                        rows += `
+                            <tr>
+                                <td><b>${gradeName}</b></td>
+                                <td>${data.q}</td>
+                            </tr>
+                        `;
+                    }
                 });
-                tbody.innerHTML = rows || "<tr><td colspan='2' style='text-align: center;'>لا توجد أسئلة مسجلة بعد.</td></tr>";
+                tbody.innerHTML = rows || "<tr><td colspan='2' style='text-align: center;'>لا توجد أسئلة مسجلة لهذا الخيار.</td></tr>";
             } catch (err) {
                 console.error(err);
                 tbody.innerHTML = "<tr><td colspan='2' style='text-align: center; color: red;'>خطأ في جلب الأسئلة.</td></tr>";
             }
         }
 
+        // دالة جلب النتائج مع التصفية بالصف
         async function loadExamResults() {
             const tbody = document.getElementById("results-body");
-            tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب النتائج...</td></tr>";
+            const filterGrade = document.getElementById("filter-results-grade").value;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>جاري جلب النتائج...</td></tr>";
             try {
                 const querySnapshot = await getDocs(collection(db, "exam_results"));
                 cachedResults = [];
@@ -508,24 +558,28 @@
                     cachedResults.push(doc.data());
                 });
 
-                if (cachedResults.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>لا توجد نتائج مسجلة حتى الآن.</td></tr>";
+                const filtered = filterGrade === "all" ? cachedResults : cachedResults.filter(r => r.grade === filterGrade);
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>لا توجد نتائج لهذا الصف.</td></tr>";
                     return;
                 }
 
                 tbody.innerHTML = "";
-                cachedResults.forEach((res) => {
+                filtered.forEach((res) => {
+                    let gradeName = res.grade === "grade_7" ? "السابع" : "الخامس";
                     tbody.innerHTML += `
                         <tr>
                             <td>${res.examId}</td>
                             <td>${res.studentName}</td>
+                            <td>${gradeName} (${res.section})</td>
                             <td><b>${res.score}</b> / 100</td>
                         </tr>
                     `;
                 });
             } catch (err) {
                 console.error(err);
-                tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; color: red;'>خطأ في جلب النتائج.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>خطأ في جلب النتائج.</td></tr>";
             }
         }
 
