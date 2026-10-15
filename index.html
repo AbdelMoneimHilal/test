@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة امتحانات الرياضيات - الصف السابع</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Tahoma', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        h2 { color: #333; margin-bottom: 15px; font-size: clamp(1.2rem, 4vw, 1.6rem); }
+        p { font-size: clamp(0.9rem, 3vw, 1.1rem); color: #555; }
+        input[type="number"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; }
+        button { background-color: #4CAF50; color: white; padding: 12px; width: 100%; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
+        button:hover { background-color: #45a049; }
+        #error-msg { color: red; margin-top: 10px; font-size: 14px; }
+        .question-box { text-align: right; margin-bottom: 15px; background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        .question-box p { font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
+        .options label { display: block; margin: 8px 0; cursor: pointer; font-size: 14px; padding: 5px; border-radius: 4px; }
+        .options label:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+
+    <!-- صفحة تسجيل الدخول -->
+    <div class="container" id="login-container">
+        <h2>تسجيل دخول الطالب</h2>
+        <p>الرجاء إدخال رقمك الامتحاني (أو كود الأستاذ 0000)</p>
+        <input type="number" id="examIdInput" placeholder="أدخل الرقم الامتحاني">
+        <button onclick="checkStudent()">دخول الامتحان</button>
+        <div id="error-msg">جاري تحميل بيانات المنصة...</div>
+    </div>
+
+    <!-- صفحة الأسئلة الامتحانية -->
+    <div class="container" id="exam-container" style="display: none;">
+        <h2 id="student-welcome"></h2>
+        <p style="color: #666;">اختبار مادة الرياضيات - الصف السابع (5 أسئلة عشوائية)</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+        
+        <div id="questions-container" style="max-height: 60vh; overflow-y: auto; padding-left: 5px;"></div>
+        <button id="submit-btn" onclick="submitExam()" style="display:none;">إرسال الإجابات وإنهاء الاختبار</button>
+
+        <div id="result-box" style="display: none; margin-top: 20px;">
+            <h3 id="score-text" style="color: #27ae60;"></h3>
+            <p>تم حفظ نتيجة اختبارك في السحابة بنجاح.</p>
+        </div>
+    </div>
+
+    <!-- مكتبات Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoKXd-RLGwtBQ2Exbk3cxXrzWGXpz40P0",
+            authDomain: "school-exams-e9474.firebaseapp.com",
+            projectId: "school-exams-e9474",
+            storageBucket: "school-exams-e9474.firebasestorage.app",
+            messagingSenderId: "86794889937",
+            appId: "1:86794889937:web:267fb9d7339968ba2673f0",
+            measurementId: "G-0FTLXQV2G9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let questionBank = [];
+        let currentStudent = null;
+        let activeQuestions = [];
+
+        // تحميل بنك الأسئلة من سحابة Firestore عند فتح الصفحة
+        async function loadQuestionBank() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "questions"));
+                questionBank = [];
+                querySnapshot.forEach((doc) => {
+                    questionBank.push(doc.data());
+                });
+                document.getElementById("error-msg.innerText = "";
+            } catch (error) {
+                console.error("خطأ في تحميل الأسئلة:", error);
+                document.getElementById("error-msg").innerText = "تأكد من إضافة الأسئلة في قاعدة بيانات فايربيس.";
+            }
+        }
+        loadQuestionBank();
+
+        window.checkStudent = async function() {
+            const inputId = document.getElementById("examIdInput").value.trim();
+            const errorMsg = document.getElementById("error-msg");
+            
+            if (inputId === "0000") {
+                currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال (معلم المادة)" };
+            } else {
+                try {
+                    // البحث عن الطالب في مجموعة الطلاب السحابية بالرقم الامتحاني
+                    const studentDoc = await getDoc(doc(db, "students", inputId));
+                    if (studentDoc.exists()) {
+                        currentStudent = { id: inputId, ...studentDoc.data() };
+                    } else {
+                        errorMsg.innerText = "الرقم الامتحاني غير مسجل في قاعدة البيانات.";
+                        return;
+                    }
+                } catch (error) {
+                    errorMsg.innerText = "حدث خطأ أثناء التحقق من الطالب.";
+                    return;
+                }
+            }
+
+            if (questionBank.length === 0) {
+                errorMsg.innerText = "بنك الأسئلة فارغ حالياً بالسحابة!";
+                return;
+            }
+
+            activeQuestions = getRandomQuestions(questionBank, 5);
+            renderQuestions();
+
+            document.getElementById("login-container").style.display = "none";
+            document.getElementById("exam-container").style.display = "block";
+            document.getElementById("student-welcome").innerText = "أهلاً بك، " + currentStudent.name;
+            document.getElementById("submit-btn").style.display = "block";
+        };
+
+        function getRandomQuestions(arr, count) {
+            let shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById("questions-container");
+            container.innerHTML = "";
+            activeQuestions.forEach((item, index) => {
+                let optionsHtml = "";
+                item.options.forEach((opt, optIndex) => {
+                    optionsHtml += `<label><input type="radio" name="q_${index}" value="${optIndex}"> ${opt}</label>`;
+                });
+                container.innerHTML += `
+                    <div class="question-box">
+                        <p>${index + 1}. ${item.q}</p>
+                        <div class="options">${optionsHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        window.submitExam = async function() {
+            let score = 0;
+            const pointsPerQuestion = 20;
+
+            activeQuestions.forEach((item, index) => {
+                const selected = document.querySelector(`input[name="q_${index}"]:checked`);
+                if (selected && parseInt(selected.value) === item.correct) {
+                    score += pointsPerQuestion;
+                }
+            });
+
+            document.getElementById("questions-container").style.display = "none";
+            document.getElementById("submit-btn").style.display = "none";
+            document.getElementById("result-box").style.display = "block";
+            document.getElementById("score-text").innerText = `علامتك النهائية هي: ${score} من 100`;
+
+            try {
+                const docId = currentStudent.id === "0000" ? "teacher_" + Date.now() : currentStudent.id;
+                await setDoc(doc(db, "exam_results", docId), {
+                    examId: currentStudent.id,
+                    studentName: currentStudent.name,
+                    score: score,
+                    submitTime: new Date().toISOString()
+                });
+            } catch (error) {
+                console.error("خطأ في حفظ النتيجة:", error);
+            }
+        };
+    </script>
+</body>
+</html>
