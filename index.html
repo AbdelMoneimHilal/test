@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة امتحانات الرياضيات - الصف السابع</title>
+    <!-- استدعاء مكتبة jsPDF لتوليد ملفات الـ PDF بسهولة -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Tahoma', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 650px; text-align: center; }
         h2 { color: #333; margin-bottom: 15px; font-size: clamp(1.2rem, 4vw, 1.6rem); }
         p { font-size: clamp(0.9rem, 3vw, 1.1rem); color: #555; }
         input[type="number"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; }
@@ -18,6 +20,13 @@
         .question-box p { font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
         .options label { display: block; margin: 8px 0; cursor: pointer; font-size: 14px; padding: 5px; border-radius: 4px; }
         .options label:hover { background: #f0f0f0; }
+        #timer-box { background: #e74c3c; color: white; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; }
+        
+        /* جدول نتائج لوحة التحكم */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: right; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #2980b9; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -30,22 +39,46 @@
         <button onclick="checkStudent()">دخول الامتحان</button>
         <div id="error-msg">جاري تحميل بيانات المنصة...</div>
         
-        <!-- زر رفع الأسئلة والطلاب تلقائياً (يظهر فقط للمعلم عند الدخول بـ 0000) -->
-        <div id="teacher-tools" style="display:none; margin-top: 20px; border-top: 2px dashed #ddd; padding-top: 15px;">
-            <p style="color: #2980b9; font-weight: bold;">لوحة تحكم الأستاذ</p>
-            <button onclick="uploadDataToFirebase()" style="background-color: #e67e22;">رفع الـ 50 سؤالاً والطلاب دفعة واحدة للسحابة</button>
-            <div id="upload-status" style="margin-top: 10px; font-size: 13px; color: #27ae60;"></div>
+        <!-- لوحة تحكم الأستاذ المتقدمة -->
+        <div id="teacher-dashboard" style="display:none; margin-top: 20px; border-top: 2px dashed #ddd; padding-top: 15px; text-align: right;">
+            <h3 style="color: #2980b9; text-align: center;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
+            
+            <button onclick="uploadDataToFirebase()" style="background-color: #e67e22;">رفع الـ 50 سؤالاً والطلاب للسحابة</button>
+            <div id="upload-status" style="margin-top: 5px; font-size: 13px; color: #27ae60; text-align: center;"></div>
+            
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+            
+            <h4 style="color: #333; margin-bottom: 5px;">نتائج الطلاب المسجلة في السحابة:</h4>
+            <button onclick="loadExamResults()" style="background-color: #3498db; margin-bottom: 10px;">تحديث وعرض النتائج</button>
+            <button onclick="downloadPDF()" style="background-color: #c0392b; margin-bottom: 10px;">حفظ النتائج كملف PDF 📄</button>
+            
+            <div style="max-height: 200px; overflow-y: auto;">
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th>الرقم</th>
+                            <th>اسم الطالب</th>
+                            <th>العلامة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <tr><td colspan="3" style="text-align: center;">انقر على تحديث وعرض النتائج</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <!-- صفحة الأسئلة الامتحانية -->
     <div class="container" id="exam-container" style="display: none;">
         <h2 id="student-welcome"></h2>
-        <p style="color: #666;">اختبار مادة الرياضيات - الصف السابع (5 أسئلة عشوائية)</p>
+        <p style="color: #666; margin-bottom: 5px;">اختبار مادة الرياضيات - الصف السابع (5 أسئلة)</p>
+        
+        <div id="timer-box">الوقت المتبقي: <span id="time-left">05:00</span></div>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
         
-        <div id="questions-container" style="max-height: 60vh; overflow-y: auto; padding-left: 5px;"></div>
-        <button id="submit-btn" onclick="submitExam()" style="display:none;">إرسال الإجابات وإنهاء الاختبار</button>
+        <div id="questions-container" style="max-height: 50vh; overflow-y: auto; padding-left: 5px;"></div>
+        <button id="submit-btn" onclick="submitExam()">إرسال الإجابات وإنهاء الاختبار</button>
 
         <div id="result-box" style="display: none; margin-top: 20px;">
             <h3 id="score-text" style="color: #27ae60;"></h3>
@@ -74,8 +107,9 @@
         let questionBank = [];
         let currentStudent = null;
         let activeQuestions = [];
+        let timerInterval = null;
+        let cachedResults = [];
 
-        // قائمة الـ 50 سؤالاً الجاهزة
         const bulkQuestions = [
             { q: "ما ناتج جمع العددين الصحيحين: (-12) + (+7) ؟", options: ["-19", "-5", "+5", "+19"], correct: 1 },
             { q: "ما هو المعكوس الجمعي للعدد الصحيح (-15) ؟", options: ["-15", "0", "15", "1/15"], correct: 2 },
@@ -129,7 +163,6 @@
             { q: "ما هو المعكوس الضربي للعدد -1/3 ؟", options: ["1/3", "3", "-3", "3/1"], correct: 2 }
         ];
 
-        // قائمة الطلاب التجريبية (يمكنك تعديلها أو إضافة أرقام طلابك)
         const bulkStudents = [
             { id: "7001", name: "أحمد محمد العلي" },
             { id: "7002", name: "محمود خالد المحمد" },
@@ -138,28 +171,86 @@
             { id: "7005", name: "عمر محمود دالاتي" }
         ];
 
-        // دالة الرفع التلقائي إلى فايربيس عند الضغط من حساب المعلم
         window.uploadDataToFirebase = async function() {
             const statusDiv = document.getElementById("upload-status");
             statusDiv.innerText = "جاري رفع الأسئلة والطلاب إلى السحابة...";
-            
             try {
-                // رفع الأسئلة
                 for (let i = 0; i < bulkQuestions.length; i++) {
                     await setDoc(doc(db, "questions", "q_" + (i + 1)), bulkQuestions[i]);
                 }
-                // رفع الطلاب
                 for (let student of bulkStudents) {
                     await setDoc(doc(db, "students", student.id), { name: student.name });
                 }
-                statusDiv.innerText = "تم رفع الـ 50 سؤالاً وقائمة الطلاب بنجاح تام! يمكنك بدء الاختبار الآن.";
+                statusDiv.innerText = "تم رفع الـ 50 سؤالاً وقائمة الطلاب بنجاح تام!";
             } catch (err) {
                 console.error(err);
-                statusDiv.innerText = "حدث خطأ أثناء الرفع، تأكد من اتصال الإنترنت.";
+                statusDiv.innerText = "حدث خطأ أثناء الرفع.";
             }
         };
 
-        // تحميل بنك الأسئلة للاستخدام
+        // دالة جلب وعرض نتائج الطلاب في لوحة تحكم الأستاذ
+        window.loadExamResults = async function() {
+            const tbody = document.getElementById("results-body");
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب النتائج...</td></tr>";
+            try {
+                const querySnapshot = await getDocs(collection(db, "exam_results"));
+                cachedResults = [];
+                querySnapshot.forEach((doc) => {
+                    cachedResults.push(doc.data());
+                });
+
+                if (cachedResults.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>لا توجد نتائج مسجلة حتى الآن.</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                cachedResults.forEach((res) => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${res.examId}</td>
+                            <td>${res.studentName}</td>
+                            <td><b>${res.score}</b> / 100</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; color: red;'>خطأ في جلب النتائج.</td></tr>";
+            }
+        };
+
+        // دالة حفظ النتائج كملف PDF
+        window.downloadPDF = function() {
+            if (cachedResults.length === 0) {
+                alert("الرجاء الضغط على 'تحديث وعرض النتائج' أولاً لجلب البيانات قبل التصدير.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const docPDF = new jsPDF();
+
+            docPDF.setFont("Tahoma", "normal");
+            docPDF.text("تقرير نتائج اختبار الرياضيات - الصف السابع", 105, 20, { align: "center" });
+            docPDF.text("الأستاذ: عبدالمنعم حسن هلال", 105, 28, { align: "center" });
+
+            let y = 45;
+            docPDF.setFontSize(12);
+            docPDF.text("الرقم الامتحاني", 30, y);
+            docPDF.text("اسم الطالب", 80, y);
+            docPDF.text("العلامة النهائية", 160, y);
+            docPDF.line(20, y + 3, 190, y + 3);
+
+            y += 10;
+            cachedResults.forEach((res) => {
+                docPDF.text(String(res.examId), 30, y);
+                docPDF.text(String(res.studentName), 80, y);
+                docPDF.text(String(res.score) + " / 100", 160, y);
+                y += 8;
+            });
+
+            docPDF.save("Math_Exam_Results.pdf");
+        };
+
         async function loadQuestionBank() {
             try {
                 const querySnapshot = await getDocs(collection(db, "questions"));
@@ -169,7 +260,7 @@
                 });
                 document.getElementById("error-msg").innerText = "";
             } catch (error) {
-                console.error("خطأ في تحميل الأسئلة:", error);
+                console.error(error);
                 document.getElementById("error-msg").innerText = "تأكد من الاتصال بالإنترنت.";
             }
         }
@@ -181,9 +272,9 @@
             
             if (inputId === "0000") {
                 currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال (معلم المادة)" };
-                // إظهار زر الرفع التلقائي للمعلم فقط
-                document.getElementById("teacher-tools").style.display = "block";
-                errorMsg.innerText = "أهلاً بك يا استاذ، يمكنك الضغط بالأسفل لرفع البيانات دفعة واحدة.";
+                document.getElementById("teacher-dashboard").style.display = "block";
+                errorMsg.innerText = "أهلاً بك يا استاذ في لوحة التحكم الخاصة بك.";
+                loadExamResults(); // جلب النتائج تلقائياً عند الدخول
                 return;
             } else {
                 try {
@@ -195,13 +286,13 @@
                         return;
                     }
                 } catch (error) {
-                    errorMsg.innerText = "حدث خطأ أثناء التحقق من الطالب.";
+                    errorMsg.innerText = "حدث خطأ أثناء التحقق.";
                     return;
                 }
             }
 
             if (questionBank.length === 0) {
-                errorMsg.innerText = "بنك الأسئلة فارغ بالسحابة، اخلُص بكود المعلم 0000 واضغط زر الرفع أولاً!";
+                errorMsg.innerText = "بنك الأسئلة فارغ، ارفع الأسئلة عبر كود المعلم 0000 أولاً!";
                 return;
             }
 
@@ -211,8 +302,28 @@
             document.getElementById("login-container").style.display = "none";
             document.getElementById("exam-container").style.display = "block";
             document.getElementById("student-welcome").innerText = "أهلاً بك، " + currentStudent.name;
-            document.getElementById("submit-btn").style.display = "block";
+            
+            startTimer(5 * 60);
         };
+
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                document.getElementById("time-left").textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    alert("انتهى وقت الامتحان المخصص!");
+                    window.submitExam();
+                }
+            }, 1000);
+        }
 
         function getRandomQuestions(arr, count) {
             let shuffled = [...arr].sort(() => 0.5 - Math.random());
@@ -224,9 +335,13 @@
             container.innerHTML = "";
             activeQuestions.forEach((item, index) => {
                 let optionsHtml = "";
-                item.options.forEach((opt, optIndex) => {
-                    optionsHtml += `<label><input type="radio" name="q_${index}" value="${optIndex}"> ${opt}</label>`;
+                let shuffledOptions = item.options.map((opt, idx) => ({ text: opt, originalIndex: idx }))
+                                                 .sort(() => 0.5 - Math.random());
+                
+                shuffledOptions.forEach((optObj) => {
+                    optionsHtml += `<label><input type="radio" name="q_${index}" value="${optObj.originalIndex}"> ${optObj.text}</label>`;
                 });
+
                 container.innerHTML += `
                     <div class="question-box">
                         <p>${index + 1}. ${item.q}</p>
@@ -237,6 +352,8 @@
         }
 
         window.submitExam = async function() {
+            if (timerInterval) clearInterval(timerInterval);
+
             let score = 0;
             const pointsPerQuestion = 20;
 
@@ -249,6 +366,7 @@
 
             document.getElementById("questions-container").style.display = "none";
             document.getElementById("submit-btn").style.display = "none";
+            document.getElementById("timer-box").style.display = "none";
             document.getElementById("result-box").style.display = "block";
             document.getElementById("score-text").innerText = `علامتك النهائية هي: ${score} من 100`;
 
