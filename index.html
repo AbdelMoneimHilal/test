@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة امتحانات الرياضيات - الصف السابع</title>
-    <!-- استدعاء مكتبة jsPDF لتوليد ملفات الـ PDF بسهولة -->
+    <title>منصة الامتحانات الإلكترونية</title>
+    <!-- استدعاء مكتبة jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -12,7 +12,7 @@
         .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 650px; text-align: center; }
         h2 { color: #333; margin-bottom: 15px; font-size: clamp(1.2rem, 4vw, 1.6rem); }
         p { font-size: clamp(0.9rem, 3vw, 1.1rem); color: #555; }
-        input[type="number"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; text-align: right; }
         button { background-color: #4CAF50; color: white; padding: 12px; width: 100%; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
         button:hover { background-color: #45a049; }
         #error-msg { color: red; margin-top: 10px; font-size: 14px; }
@@ -22,57 +22,95 @@
         .options label:hover { background: #f0f0f0; }
         #timer-box { background: #e74c3c; color: white; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; }
         
-        /* جدول نتائج لوحة التحكم */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: right; font-size: 14px; }
+        /* تنسيق لوحة تحكم الأستاذ */
+        .admin-section { background: #fdfdfd; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; font-size: 14px; }
         th, td { border: 1px solid #ddd; padding: 8px; }
         th { background-color: #2980b9; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
 
     <!-- صفحة تسجيل الدخول -->
     <div class="container" id="login-container">
-        <h2>تسجيل دخول الطالب</h2>
+        <h2>منصة الامتحانات المدرسية</h2>
         <p>الرجاء إدخال رقمك الامتحاني (أو كود الأستاذ 0000)</p>
-        <input type="number" id="examIdInput" placeholder="أدخل الرقم الامتحاني">
-        <button onclick="checkStudent()">دخول الامتحان</button>
+        <input type="number" id="examIdInput" placeholder="أدخل الرقم الامتحاني أو كود المعلم">
+        <button onclick="checkStudent()">دخول</button>
         <div id="error-msg">جاري تحميل بيانات المنصة...</div>
         
-        <!-- لوحة تحكم الأستاذ المتقدمة -->
-        <div id="teacher-dashboard" style="display:none; margin-top: 20px; border-top: 2px dashed #ddd; padding-top: 15px; text-align: right;">
+        <!-- لوحة تحكم الأستاذ المطورة -->
+        <div id="teacher-dashboard" style="display:none; margin-top: 20px;">
             <h3 style="color: #2980b9; text-align: center;">لوحة تحكم الأستاذ عبدالمنعم حسن هلال</h3>
             
-            <button onclick="uploadDataToFirebase()" style="background-color: #e67e22;">رفع الـ 50 سؤالاً والطلاب للسحابة</button>
-            <div id="upload-status" style="margin-top: 5px; font-size: 13px; color: #27ae60; text-align: center;"></div>
-            
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-            
-            <h4 style="color: #333; margin-bottom: 5px;">نتائج الطلاب المسجلة في السحابة:</h4>
-            <button onclick="loadExamResults()" style="background-color: #3498db; margin-bottom: 10px;">تحديث وعرض النتائج</button>
-            <button onclick="downloadPDF()" style="background-color: #c0392b; margin-bottom: 10px;">حفظ النتائج كملف PDF 📄</button>
-            
-            <div style="max-height: 200px; overflow-y: auto;">
-                <table id="results-table">
-                    <thead>
-                        <tr>
-                            <th>الرقم</th>
-                            <th>اسم الطالب</th>
-                            <th>العلامة</th>
-                        </tr>
-                    </thead>
-                    <tbody id="results-body">
-                        <tr><td colspan="3" style="text-align: center;">انقر على تحديث وعرض النتائج</td></tr>
-                    </tbody>
-                </table>
+            <!-- اختيار الصف -->
+            <div class="admin-section">
+                <label><b>اختر الصف الدراسي:</b></label>
+                <select id="selected-grade" onchange="onGradeChange()">
+                    <option value="">-- اختر الصف --</option>
+                    <option value="grade_7">الصف السابع</option>
+                    <option value="grade_5">الصف الخامس</option>
+                </select>
             </div>
+
+            <!-- خيارات الإدارة بعد اختيار الصف -->
+            <div id="grade-options" style="display: none;">
+                
+                <!-- إضافة أسئلة يدوياً -->
+                <div class="admin-section">
+                    <h4 style="color: #2c3e50; margin-top: 0;">إضافة سؤال جديد للصف المحدد</h4>
+                    <input type="text" id="new-q-text" placeholder="نص السؤال">
+                    <input type="text" id="new-opt-0" placeholder="الخيار الأول">
+                    <input type="text" id="new-opt-1" placeholder="الخيار الثاني">
+                    <input type="text" id="new-opt-2" placeholder="الخيار الثالث">
+                    <input type="text" id="new-opt-3" placeholder="الخيار الرابع">
+                    <label style="font-size: 13px;">رقم الإجابة الصحيحة (0 للأول، 1 للثاني، إلخ):</label>
+                    <input type="number" id="new-correct" min="0" max="3" value="0">
+                    <button onclick="addQuestionManual()" style="background-color: #27ae60;">حفظ وإضافة السؤال للسحابة</button>
+                    <div id="q-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
+                </div>
+
+                <!-- إضافة الطلاب وشعبهم -->
+                <div class="admin-section">
+                    <h4 style="color: #2c3e50; margin-top: 0;">إضافة طالب جديد لشعبة معينة</h4>
+                    <input type="text" id="new-student-id" placeholder="الرقم الامتحاني (مثال: 7001)">
+                    <input type="text" id="new-student-name" placeholder="اسم الطالب الثلاثي">
+                    <input type="text" id="new-student-section" placeholder="الشعبة (مثال: أ، ب، الشعبة الأولى)">
+                    <button onclick="addStudentManual()" style="background-color: #2980b9;">تسجيل الطالب في القاعدة</button>
+                    <div id="s-status" style="font-size: 13px; color: green; margin-top: 5px;"></div>
+                </div>
+
+            </div>
+
+            <!-- قسم استعراض النتائج والـ PDF -->
+            <div class="admin-section">
+                <h4 style="color: #333; margin-top: 0;">النتائج والتقارير</h4>
+                <button onclick="loadExamResults()" style="background-color: #3498db; margin-bottom: 8px;">تحديث وعرض النتائج</button>
+                <button onclick="downloadPDF()" style="background-color: #c0392b;">حفظ النتائج كملف PDF 📄</button>
+                
+                <div style="max-height: 180px; overflow-y: auto; margin-top: 10px;">
+                    <table id="results-table">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>اسم الطالب</th>
+                                <th>العلامة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-body">
+                            <tr><td colspan="3" style="text-align: center;">انقر على تحديث وعرض النتائج</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <!-- صفحة الأسئلة الامتحانية -->
     <div class="container" id="exam-container" style="display: none;">
         <h2 id="student-welcome"></h2>
-        <p style="color: #666; margin-bottom: 5px;">اختبار مادة الرياضيات - الصف السابع (5 أسئلة)</p>
+        <p style="color: #666; margin-bottom: 5px;" id="exam-title-grade">اختبار مادة الرياضيات</p>
         
         <div id="timer-box">الوقت المتبقي: <span id="time-left">05:00</span></div>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
@@ -89,7 +127,7 @@
     <!-- مكتبات Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, setDoc, addCollection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCoKXd-RLGwtBQ2Exbk3cxXrzWGXpz40P0",
@@ -110,85 +148,83 @@
         let timerInterval = null;
         let cachedResults = [];
 
-        const bulkQuestions = [
-            { q: "ما ناتج جمع العددين الصحيحين: (-12) + (+7) ؟", options: ["-19", "-5", "+5", "+19"], correct: 1 },
-            { q: "ما هو المعكوس الجمعي للعدد الصحيح (-15) ؟", options: ["-15", "0", "15", "1/15"], correct: 2 },
-            { q: "ما ناتج ضرب العددين: (-6) × (-4) ؟", options: ["-24", "+24", "-10", "+10"], correct: 1 },
-            { q: "ما ناتج قسمة العدد: (-36) ÷ (+9) ؟", options: ["+4", "-4", "-27", "+27"], correct: 1 },
-            { q: "ما هي القيمة المطلقة للعدد |-25| ؟", options: ["-25", "0", "25", "5"], correct: 2 },
-            { q: "إذا كانت درجة الحرارة (-5) ثم انخفضت بمقدار 3 درجات، فكم تصبح؟", options: ["-2", "+2", "-8", "+8"], correct: 2 },
-            { q: "ما ناتج طرح: (+14) - (+20) ؟", options: ["+6", "-6", "+34", "-34"], correct: 1 },
-            { q: "ما هي النتيجة الصحيحة للعبارة الآتية: -8 - (-3) ؟", options: ["-11", "-5", "+5", "+11"], correct: 1 },
-            { q: "أي الأعداد الآتية هو الأكبر قيمة؟", options: ["-2", "-100", "0", "-1"], correct: 2 },
-            { q: "ما ناتج حساب القوة الآتية: 3^2 (أي 3 مرفوعة للقوة 2) ؟", options: ["6", "9", "8", "3"], correct: 1 },
-            { q: "ما ناتج العبارة الآتية: 2^3 ؟", options: ["6", "8", "9", "5"], correct: 1 },
-            { q: "ما هو الناتج الأبسط للعملية: (-5) × 0 × 12 ؟", options: ["-60", "0", "60", "-720"], correct: 1 },
-            { q: "إذا كان x = -4، فما قيمة التعبير: 3x + 5 ؟", options: ["-17", "-7", "7", "17"], correct: 1 },
-            { q: "ما ناتج جمع: (-18) + (-22) ؟", options: ["-40", "+40", "-4", "+4"], correct: 0 },
-            { q: "ما هو مقلوب أو المعكوس الضربي للعدد 5 ؟", options: ["-5", "1/5", "-1/5", "0"], correct: 1 },
-            { q: "ما ناتج قسمة عدد سالب على عدد سالب؟", options: ["سالب دائماً", "موجب دائماً", "صفر", "يختلف حسب العدد"], correct: 1 },
-            { q: "ما هو العدد الذي إذا أضيف إليه 7 كان الناتج 3 ؟", options: ["10", "-10", "4", "-4"], correct: 3 },
-            { q: "ما ناتج: (-2)^3 ؟", options: ["-8", "+8", "-6", "+6"], correct: 0 },
-            { q: "ما ناتج: (-2)^4 ؟", options: ["-16", "+16", "-8", "+8"], correct: 1 },
-            { q: "حل المعادلة البسيطة: 2x = 10 ، فما قيمة x ؟", options: ["5", "-5", "20", "2"], correct: 0 },
-            { q: "حل المعادلة: x - 4 = 6 ، فما قيمة x ؟", options: ["2", "10", "-10", "-2"], correct: 1 },
-            { q: "ما قياس الزاوية القائمة؟", options: ["90 درجة", "180 درجة", "360 درجة", "45 درجة"], correct: 0 },
-            { q: "ما قياس الزاوية المستقيمة؟", options: ["90 درجة", "180 درجة", "270 درجة", "360 درجة"], correct: 1 },
-            { q: "إذا كانت زاويتان متتامتين، وكان قياس إحداهما 40 درجة، فما قياس الأخرى؟", options: ["50 درجة", "140 درجة", "90 درجة", "180 درجة"], correct: 0 },
-            { q: "إذا كانت زاويتان متكاملتين، وكان قياس إحداهما 70 درجة، فما قياس الأخرى؟", options: ["20 درجة", "110 درجة", "90 درجة", "130 درجة"], correct: 1 },
-            { q: "مجموع قياسات زوايا المثلث الداخلية يساوي:", options: ["90 درجة", "180 درجة", "360 درجة", "270 درجة"], correct: 1 },
-            { q: "ما هو نوع المثلث الذي قياسات زواياه 60، 60، 60 ؟", options: ["مختلف الاضلاع", "متطابق الاضلاع والزوايا", "قائم الزاوية", "منفرج الزاوية"], correct: 1 },
-            { q: "ما ناتج تبسيط العبارة الجبرية: 3x + 2x ؟", options: ["5x", "6x^2", "5x^2", "6x"], correct: 0 },
-            { q: "ما ناتج فك القوس: 2(x + 3) ؟", options: ["2x + 3", "2x + 6", "x + 6", "5x"], correct: 1 },
-            { q: "ما هو المضاعف المشترك الأصغر (م.م.أ) للعددين 4 و 6 ؟", options: ["2", "12", "24", "10"], correct: 1 },
-            { q: "ما هو القاسم المشترك الأكبر (ق.م.أ) للعددين 12 و 18 ؟", options: ["6", "3", "2", "36"], correct: 0 },
-            { q: "حول الكسر العشري 0.75 إلى كسر اعتيادي في أبسط صورة:", options: ["1/2", "1/4", "3/4", "2/3"], correct: 2 },
-            { q: "ما ناتج جمع الكسرين: 1/4 + 2/4 ؟", options: ["3/8", "3/4", "1/2", "3/2"], correct: 1 },
-            { q: "ما ناتج ضرب الكسرين: (1/2) × (2/3) ؟", options: ["3/5", "2/6", "1/3", "3/2"], correct: 2 },
-            { q: "العدد الأولي من بين الأعداد الآتية هو:", options: ["9", "15", "17", "21"], correct: 2 },
-            { q: "العدد غير الأولي (المؤلف) بين الأعداد التالية هو:", options: ["13", "19", "23", "27"], correct: 3 },
-            { q: "ما ناتج: |-15| + |-5| ؟", options: ["-20", "10", "20", "-10"], correct: 2 },
-            { q: "إذا كان سعر القلم 350 ليرة، فما ثمن 4 أقلام؟", options: ["1200 ليرة", "1400 ليرة", "1500 ليرة", "1000 ليرة"], correct: 1 },
-            { q: "ما هي مساحة مستطيل طوله 8 سم وعرضه 5 سم؟", options: ["26 سم مربع", "40 سم مربع", "13 سم", "40 سم"], correct: 1 },
-            { q: "ما هو محيط مربع طول طلعه 6 سم؟", options: ["36 سم", "24 سم", "12 سم", "18 سم"], correct: 1 },
-            { q: "ما ناتج العمليات الحسابية التالية طبقاً للأولوية: 3 + 4 × 2 ؟", options: ["14", "11", "10", "9"], correct: 1 },
-            { q: "ما ناتج العبارة: (5 + 3) × 2 ؟", options: ["13", "16", "11", "10"], correct: 1 },
-            { q: "إذا تحركنا على خط الاعداد من الرقم 4 يساراً بمقدار 7 خطوات، فإلى أين نصل؟", options: ["3", "-3", "11", "-11"], correct: 1 },
-            { q: "ما هو العدد الذي إذا ضرب في -4 كان الناتج 28 ؟", options: ["7", "-7", "12", "-12"], correct: 1 },
-            { q: "أي الكسور الآتية يكسر أكبر قيمة أو يكافئ النصف؟", options: ["2/6", "3/6", "1/4", "2/8"], correct: 1 },
-            { q: "ما ناتج تبسيط الجذر التربيعي للعدد 81 (أي الجذر التربيعي لـ 81) ؟", options: ["8", "9", "18", "3"], correct: 1 },
-            { q: "ما ناتج قسمة أي عدد غير الصفر على نفسه؟", options: ["صفر", "العدد نفسه", "واحد", "غير معرّف"], correct: 2 },
-            { q: "ما ناتج قسمة الصفر على أي عدد غير الصفر؟", options: ["صفر", "واحد", "غير معرّف", "العدد نفسه"], correct: 0 },
-            { q: "متوازي اضلاع طول قاعدته 10 سم وارتفاعه 6 سم، فما مساحته؟", options: ["30 سم مربع", "60 سم مربع", "32 سم مربع", "16 سم مربع"], correct: 1 },
-            { q: "ما هو المعكوس الضربي للعدد -1/3 ؟", options: ["1/3", "3", "-3", "3/1"], correct: 2 }
-        ];
-
-        const bulkStudents = [
-            { id: "7001", name: "أحمد محمد العلي" },
-            { id: "7002", name: "محمود خالد المحمد" },
-            { id: "7003", name: "فاطمة عمر الشيخ" },
-            { id: "7004", name: "سارة أحمد النجار" },
-            { id: "7005", name: "عمر محمود دالاتي" }
-        ];
-
-        window.uploadDataToFirebase = async function() {
-            const statusDiv = document.getElementById("upload-status");
-            statusDiv.innerText = "جاري رفع الأسئلة والطلاب إلى السحابة...";
-            try {
-                for (let i = 0; i < bulkQuestions.length; i++) {
-                    await setDoc(doc(db, "questions", "q_" + (i + 1)), bulkQuestions[i]);
-                }
-                for (let student of bulkStudents) {
-                    await setDoc(doc(db, "students", student.id), { name: student.name });
-                }
-                statusDiv.innerText = "تم رفع الـ 50 سؤالاً وقائمة الطلاب بنجاح تام!";
-            } catch (err) {
-                console.error(err);
-                statusDiv.innerText = "حدث خطأ أثناء الرفع.";
+        window.onGradeChange = function() {
+            const grade = document.getElementById("selected-grade").value;
+            const optionsDiv = document.getElementById("grade-options");
+            if (grade) {
+                optionsDiv.style.display = "block";
+            } else {
+                optionsDiv.style.display = "none";
             }
         };
 
-        // دالة جلب وعرض نتائج الطلاب في لوحة تحكم الأستاذ
+        // إضافة سؤال يدوياً للصف المحدد
+        window.addQuestionManual = async function() {
+            const grade = document.getElementById("selected-grade").value;
+            const qText = document.getElementById("new-q-text").value.trim();
+            const opt0 = document.getElementById("new-opt-0").value.trim();
+            const opt1 = document.getElementById("new-opt-1").value.trim();
+            const opt2 = document.getElementById("new-opt-2").value.trim();
+            const opt3 = document.getElementById("new-opt-3").value.trim();
+            const correct = parseInt(document.getElementById("new-correct").value);
+            const status = document.getElementById("q-status");
+
+            if (!qText || !opt0 || !opt1) {
+                alert("الرجاء تعبئة نص السؤال والخيارين الأول والثاني على الأقل.");
+                return;
+            }
+
+            const questionObj = {
+                q: qText,
+                options: [opt0, opt1, opt2, opt3].filter(o => o !== ""),
+                correct: correct
+            };
+
+            try {
+                const docId = grade + "_q_" + Date.now();
+                await setDoc(doc(db, "questions", docId), { ...questionObj, grade: grade });
+                status.innerText = "تمت إضافة السؤال بنجاح!";
+                document.getElementById("new-q-text").value = "";
+                document.getElementById("new-opt-0").value = "";
+                document.getElementById("new-opt-1").value = "";
+                document.getElementById("new-opt-2").value = "";
+                document.getElementById("new-opt-3").value = "";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "حدث خطأ أثناء الحفظ.";
+            }
+        };
+
+        // إضافة طالب يدوياً مع الشعبة
+        window.addStudentManual = async function() {
+            const grade = document.getElementById("selected-grade").value;
+            const sId = document.getElementById("new-student-id").value.trim();
+            const sName = document.getElementById("new-student-name").value.trim();
+            const sSection = document.getElementById("new-student-section").value.trim();
+            const status = document.getElementById("s-status");
+
+            if (!sId || !sName) {
+                alert("الرجاء إدخال الرقم الامتحاني واسم الطالب.");
+                return;
+            }
+
+            try {
+                await setDoc(doc(db, "students", sId), {
+                    name: sName,
+                    grade: grade,
+                    section: sSection || "عامة"
+                });
+                status.innerText = "تم تسجيل الطالب بنجاح!";
+                document.getElementById("new-student-id").value = "";
+                document.getElementById("new-student-name").value = "";
+                document.getElementById("new-student-section").value = "";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "حدث خطأ أثناء تسجيل الطالب.";
+            }
+        };
+
+        // جلب نتائج الطلاب
         window.loadExamResults = async function() {
             const tbody = document.getElementById("results-body");
             tbody.innerHTML = "<tr><td colspan='3' style='text-align: center;'>جاري جلب النتائج...</td></tr>";
@@ -220,24 +256,24 @@
             }
         };
 
-        // دالة حفظ النتائج كملف PDF
+        // تصدير النتائج لـ PDF
         window.downloadPDF = function() {
             if (cachedResults.length === 0) {
-                alert("الرجاء الضغط على 'تحديث وعرض النتائج' أولاً لجلب البيانات قبل التصدير.");
+                alert("الرجاء النقر على 'تحديث وعرض النتائج' أولاً.");
                 return;
             }
             const { jsPDF } = window.jspdf;
             const docPDF = new jsPDF();
 
             docPDF.setFont("Tahoma", "normal");
-            docPDF.text("تقرير نتائج اختبار الرياضيات - الصف السابع", 105, 20, { align: "center" });
+            docPDF.text("تقرير نتائج الامتحانات المدرسية", 105, 20, { align: "center" });
             docPDF.text("الأستاذ: عبدالمنعم حسن هلال", 105, 28, { align: "center" });
 
             let y = 45;
             docPDF.setFontSize(12);
-            docPDF.text("الرقم الامتحاني", 30, y);
+            docPDF.text("الرقم", 30, y);
             docPDF.text("اسم الطالب", 80, y);
-            docPDF.text("العلامة النهائية", 160, y);
+            docPDF.text("العلامة", 160, y);
             docPDF.line(20, y + 3, 190, y + 3);
 
             y += 10;
@@ -248,33 +284,18 @@
                 y += 8;
             });
 
-            docPDF.save("Math_Exam_Results.pdf");
+            docPDF.save("Exam_Results.pdf");
         };
-
-        async function loadQuestionBank() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "questions"));
-                questionBank = [];
-                querySnapshot.forEach((doc) => {
-                    questionBank.push(doc.data());
-                });
-                document.getElementById("error-msg").innerText = "";
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error-msg").innerText = "تأكد من الاتصال بالإنترنت.";
-            }
-        }
-        loadQuestionBank();
 
         window.checkStudent = async function() {
             const inputId = document.getElementById("examIdInput").value.trim();
             const errorMsg = document.getElementById("error-msg");
             
             if (inputId === "0000") {
-                currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال (معلم المادة)" };
+                currentStudent = { id: "0000", name: "الأستاذ عبدالمنعم حسن هلال" };
                 document.getElementById("teacher-dashboard").style.display = "block";
-                errorMsg.innerText = "أهلاً بك يا استاذ في لوحة التحكم الخاصة بك.";
-                loadExamResults(); // جلب النتائج تلقائياً عند الدخول
+                errorMsg.innerText = "أهلاً بك يا استاذ في لوحة التحكم الإدارية.";
+                loadExamResults();
                 return;
             } else {
                 try {
@@ -291,17 +312,32 @@
                 }
             }
 
+            // جلب أسئلة الصف الخاص بالطالب فقط
+            try {
+                const querySnapshot = await getDocs(collection(db, "questions"));
+                questionBank = [];
+                querySnapshot.forEach((d) => {
+                    const data = d.data();
+                    if (!data.grade || data.grade === currentStudent.grade) {
+                        questionBank.push(data);
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+            }
+
             if (questionBank.length === 0) {
-                errorMsg.innerText = "بنك الأسئلة فارغ، ارفع الأسئلة عبر كود المعلم 0000 أولاً!";
+                errorMsg.innerText = "لا توجد أسئلة مسجلة لهذا الصف حتى الآن!";
                 return;
             }
 
-            activeQuestions = getRandomQuestions(questionBank, 5);
+            activeQuestions = getRandomQuestions(questionBank, Math.min(5, questionBank.length));
             renderQuestions();
 
             document.getElementById("login-container").style.display = "none";
             document.getElementById("exam-container").style.display = "block";
             document.getElementById("student-welcome").innerText = "أهلاً بك، " + currentStudent.name;
+            document.getElementById("exam-title-grade").innerText = "اختبار مادة الرياضيات - الشعبة: " + (currentStudent.section || "عامة");
             
             startTimer(5 * 60);
         };
@@ -311,15 +347,13 @@
             timerInterval = setInterval(function () {
                 minutes = parseInt(timer / 60, 10);
                 seconds = parseInt(timer % 60, 10);
-
                 minutes = minutes < 10 ? "0" + minutes : minutes;
                 seconds = seconds < 10 ? "0" + seconds : seconds;
-
                 document.getElementById("time-left").textContent = minutes + ":" + seconds;
 
                 if (--timer < 0) {
                     clearInterval(timerInterval);
-                    alert("انتهى وقت الامتحان المخصص!");
+                    alert("انتهى وقت الامتحان!");
                     window.submitExam();
                 }
             }, 1000);
@@ -353,9 +387,8 @@
 
         window.submitExam = async function() {
             if (timerInterval) clearInterval(timerInterval);
-
             let score = 0;
-            const pointsPerQuestion = 20;
+            const pointsPerQuestion = Math.floor(100 / activeQuestions.length);
 
             activeQuestions.forEach((item, index) => {
                 const selected = document.querySelector(`input[name="q_${index}"]:checked`);
@@ -375,6 +408,8 @@
                 await setDoc(doc(db, "exam_results", docId), {
                     examId: currentStudent.id,
                     studentName: currentStudent.name,
+                    grade: currentStudent.grade || "غير محدد",
+                    section: currentStudent.section || "عامة",
                     score: score,
                     submitTime: new Date().toISOString()
                 });
